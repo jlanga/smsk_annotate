@@ -1,0 +1,62 @@
+rule swissprot_split_pep:
+    input:
+        fai = transdecoder + "transdecoder.pep.fai"
+    output:
+        temp(dynamic(
+            swissprot + "chunks/transdecoder_{chunk_id}.tsv"
+        ))
+    params:
+        chunk_size = config["chunk_size"]["swissprot_blastp"]
+    log:
+        swissprot + "split_pep.log"
+    benchmark:
+        swissprot + "split_pep.json"
+    shell:
+        "cut -f 1 {input.fai} "
+        "| split "
+            "--lines {params.chunk_size} "
+            "--numeric-suffixes "
+            "--suffix-length 5 "
+            "--additional-suffix .tsv "
+            "- "
+            "{swissprot}/chunks/transdecoder_ "
+        "2> {log}"
+
+
+
+rule swissprot_blastp_chunk:
+    input:
+        pep = transdecoder + "transdecoder.pep",
+        fai = transdecoder + "transdecoder.pep.fai",
+        chunk = swissprot + "chunks/transdecoder_{chunk_id}.tsv",
+        db = db + "swissprot"
+    output:
+        tsv = swissprot + "blastp/transdecoder_{chunk_id}.tsv"
+    log:
+        swissprot + "blastp/transdecoder_{chunk_id}.log"
+    benchmark:
+        swissprot + "blastp/transdecoder_{chunk_id}.json"
+    shell:
+        "cat {input.chunk} "
+        "| xargs samtools faidx {input.pep} "
+        "| blastp "
+            "-db {input.db} "
+            "-max_target_seqs 1 "
+            "-outfmt 6 "
+            "-evalue 1e-5 "
+            "-out {output.tsv} " 
+        "2> {log} 1>&2"
+
+
+
+rule swissprot_blastp_merge:
+    input:
+        dynamic(swissprot + "blastp/transdecoder_{chunk_id}.tsv")
+    output:
+        tsv = swissprot + "blastp.tsv"
+    log:
+        swissprot + "blastp_merge.log"
+    benchmark:
+        swissprot + "blastp_merge.json"
+    shell:
+        "cat {input} > {output} 2> {log}"

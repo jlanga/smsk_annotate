@@ -1,0 +1,62 @@
+rule uniref90_split_pep:
+    input:
+        fai = transdecoder + "transdecoder.pep.fai"
+    output:
+        temp(dynamic(
+            uniref90 + "chunks/transdecoder_{chunk_id}.tsv"
+        ))
+    params:
+        chunk_size = config["chunk_size"]["uniref90_blastp"]
+    log:
+        uniref90 + "split_pep.log"
+    benchmark:
+        uniref90 + "split_pep.json"
+    shell:
+        "cut -f 1 {input.fai} "
+        "| split "
+            "--lines {params.chunk_size} "
+            "--numeric-suffixes "
+            "--suffix-length 5 "
+            "--additional-suffix .tsv "
+            "- "
+            "{uniref90}/chunks/transdecoder_ "
+        "2> {log}"
+
+
+
+rule uniref90_blastp_chunk:
+    input:
+        pep = transdecoder + "transdecoder.pep",
+        fai = transdecoder + "transdecoder.pep.fai",
+        chunk = uniref90 + "chunks/transdecoder_{chunk_id}.tsv",
+        db = db + "uniref90"
+    output:
+        tsv = uniref90 + "blastp/transdecoder_{chunk_id}.tsv"
+    log:
+        uniref90 + "blastp/transdecoder_{chunk_id}.log"
+    benchmark:
+        uniref90 + "blastp/transdecoder_{chunk_id}.json"
+    shell:
+        "cat {input.chunk} "
+        "| xargs samtools faidx {input.pep} "
+        "| blastp "
+            "-db {input.db} "
+            "-max_target_seqs 1 "
+            "-outfmt 6 "
+            "-evalue 1e-5 "
+            "-out {output.tsv} " 
+        "2> {log} 1>&2"
+
+
+
+rule uniref90_blastp_merge:
+    input:
+        dynamic(uniref90 + "blastp/transdecoder_{chunk_id}.tsv")
+    output:
+        tsv = uniref90 + "blastp.tsv"
+    log:
+        uniref90 + "blastp_merge.log"
+    benchmark:
+        uniref90 + "blastp_merge.json"
+    shell:
+        "cat {input} > {output} 2> {log}"

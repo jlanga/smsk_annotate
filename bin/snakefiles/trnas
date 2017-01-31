@@ -1,0 +1,20 @@
+rule trnas_trnascanse_run:
+    input:
+        fa = raw + "transcriptome.fa"
+    output:
+        tsv = trnas + "trnascanse.tsv"
+    log:
+        trnas + "trnascanse_run.log"
+    benchmark:
+        trnas + "trnascanse_run.json"
+    shell:
+        "docker run "
+            "--rm "
+            "--volume `pwd`:`pwd` "
+            "--workdir `pwd` "
+            "-u `id -u $USER`:`id -g $USER` "
+            "yookuda/trnascan_se "
+            "tRNAscan-SE "
+                "-o {output.tsv} "
+                "results/raw/transcriptome.fa "
+        "2> {log} 1>&2"

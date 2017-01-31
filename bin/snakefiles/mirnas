@@ -1,0 +1,114 @@
+rule mirnas_transcriptome_split:
+    """
+    Split transcriptome into multiple chunks
+    """
+    input:
+        fai = raw + "transcriptome.fa.fai"
+    output:
+        temp(dynamic(
+            mirnas + "chunks/transcriptome_{chunk_id}.tsv"
+        ))
+    params:
+        chunk_size = config["chunk_size"]["mirnas_blastn"]
+    log:
+        mirnas + "transcriptome_split.log"
+    benchmark:
+        mirnas + "transcriptome_split.json"
+    shell:
+        "cut -f 1 {input.fai} "
+        "| split "
+            "--lines {params.chunk_size} "
+            "--numeric-suffixes "
+            "--suffix-length 5 "
+            "--additional-suffix .tsv "
+            "- "
+            "{mirnas}/chunks/transcriptome_ "
+        "2> {log}"
+
+
+rule mirnas_blastn_transcriptome_chunk:
+    """
+    Blastn each chunk against the hairpin database
+    """
+    input:
+        fa = raw + "transcriptome.fa",
+        fai = raw + "transcriptome.fa.fai",
+        chunk = mirnas + "chunks/transcriptome_{chunk_id}.tsv",
+        db = db + "hairpin"
+    output:
+        tsv = mirnas + "blastn/transcriptome_{chunk_id}.tsv"
+    log:
+        mirnas + "blastn/transcriptome_{chunk_id}.log"
+    benchmark:
+        mirnas + "blastn/transcriptome_{chunk_id}.json"
+    shell:
+        "cat {input.chunk} "
+        "| xargs samtools faidx {input.fa} "
+        "| blastn "
+            "-db {input.db} "
+            "-max_target_seqs 1 "
+            "-outfmt 6 "
+            "-evalue 1e-5 "
+            "-out {output.tsv} " 
+        "2> {log} 1>&2"
+
+
+
+rule mirnas_blastn_merge:
+    """
+    Merge the blastn results against the hairpin database
+    """
+    input:
+        dynamic(mirnas + "blastn/transcriptome_{chunk_id}.tsv")
+    output:
+        tsv = mirnas + "blastn.tsv"
+    log:
+        mirnas + "blastp_merge.log"
+    benchmark:
+        mirnas + "blastp_merge.json"
+    shell:
+        "cat {input} > {output} 2> {log}"
+
+
+
+rule mirnas_candidates_fasta:
+    """
+    Fasta with sequences homologous to hairpins
+    """
+    input:
+        tsv = mirnas + "blastn.tsv",
+        fa = raw + "transcriptome.fa",
+        fai = raw + "transcriptome.fa.fai"
+    output:
+        fa = mirnas + "candidates.fa"
+    log:
+        mirnas + "candidates_fasta.log"
+    benchmark:
+        mirnas + "candidates_fasta.json"
+    shell:
+        "cut -f 1 {input.tsv} "
+        "| sort -u "
+        "| xargs samtools faidx {input.fa} "
+        "> {output.fa} "
+        "2> {log}"
+
+
+
+# rule mirnas_rnafold: ##data/mirnas/rnafold.tsv + ps files
+#     input:
+#         fa = mirnas + "candidates.fa"
+#     output:
+#         tsv = mirnas + "rnafold.tsv"
+#     threads:
+#         1
+#     log:
+#         mirnas + "rnafold.log"
+#     benchmark:
+#         mirnas + "rnafold.json"
+#     shell:
+#         """
+#         RNAfold \
+#             --infile {input.fa} \
+#             --outfile {output.tsv} \
+#         2> {log} 1>&2
+#         """

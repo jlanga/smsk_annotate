@@ -1,0 +1,237 @@
+rule db_makeblastdb_nr:
+    """
+    Make the NR filtered database
+    """
+    input:
+        download + "nr.fa.gz"
+    output:
+        touch(db + "nr")
+    threads:
+        1
+    log:
+        db + "makeblastdb_nr.log"
+    benchmark:
+        db + "makeblastdb_nr.json"
+    shell:
+        "gzip --decompress --stdout {input} "
+        "| makeblastdb "
+            "-dbtype prot "
+            "-title {output} "
+            "-out {output} "
+            "-parse_seqids "
+        "2> {log} 1>&2"
+
+
+
+rule db_subset_nr:
+    """
+    Subset the NR database into the ones with GI's from the taxa in file
+    """
+    input:
+        db = db + "nr",
+        gi_list = config["gi_list"]
+    output:
+        db = touch(db + "subset_nr"),
+        pal = db + "subset_nr.pal",
+        p = db + "subset_nr.p.gil"
+    params:
+        tmp_pal = "subset_nr.pal",
+        tmp_p = "subset_nr.p.gil"
+    log:
+        db + "subset_nr.log"
+    benchmark:
+        db + "subset_nr.json"
+    shell:
+        "blastdb_aliastool "
+            "-db {input.db} "
+            "-dbtype prot "
+            "-gilist {input.gi_list} "
+            "-out subset_nr "
+        "2> {log} 1>&2; "
+        "mv {params.tmp_pal} {output.pal}; "
+        "mv {params.tmp_p} {output.p}"
+
+
+
+
+rule db_hmmpress_pfama:
+    """
+    Format the HMM Pfam-A database
+    """
+    input:
+        hmm_gz = download + "Pfam-A.hmm.gz"
+    output:
+        hmm = db + "Pfam-A.hmm",
+        other = expand(
+            db + "Pfam-A.hmm.{extension}",
+            extension = "h3i h3f h3p".split()
+        )
+    log:
+        db + "hmmpress_pfama.log"
+    benchmark:
+        db + "hmmpress_pfama.json"
+    shell:
+        "gzip "
+            "--decompress --keep --stdout "
+            "{input.hmm_gz} "
+        "> {output.hmm} "
+        "2> {log}; "
+        "hmmpress {output.hmm} 2>> {log}"
+
+
+
+rule db_makeblastdb_uniref90:
+    """
+    Make the Uniref90 database
+    """
+    input:
+        download + "uniref90.fa.gz"
+    output:
+        touch(db + "uniref90")
+    log:
+        db + "makeblastdb_uniref90.log"
+    benchmark:
+        db + "makeblastdb_uniref90.json"
+    shell:
+        "gzip --decompress --stdout {input} "
+        "| makeblastdb "
+            "-dbtype prot "
+            "-title {output} "
+            "-out {output} "
+        "2> {log} 1>&2"
+
+
+
+
+rule db_busco_extract_lineage:
+    """
+    Decompress the tarball to the appropriate folder.
+    """
+    input:
+        tarball = download + "{lineage}.tar.gz"
+    output:
+        folder  = touch(db + "{lineage}/") #touch to make the output older than the input
+    params:
+        db_dir = db
+    log:
+        download + "busco_extract_{lineage}.log"
+    benchmark:
+        download + "busco_extract_{lineage}.json"
+    shell:
+        "tar "
+            "--extract "
+            "--verbose "
+            "--file {input.tarball} "
+            "--directory {params.db_dir} "
+        "2> {log} 1>&2"
+
+
+
+rule db_makeblastb_cog:
+    """
+    Make the protein cog blast database
+    """
+    input:
+        fa_gz = download + "prot2003-2014.fa.gz"
+    output:
+        mock = touch(db + "cog")
+    log:
+        db + "makeblastdb_cog.log"
+    benchmark:
+        db + "makeblastdb_cog.json"
+    shell:
+        "gzip --decompress --stdout {input.fa_gz} "
+        "| makeblastdb "
+            "-dbtype prot "
+            "-title {output.mock} "
+            "-out {output.mock} "
+        "2> {log} 1>&2"
+
+
+
+rule db_makeblastdb_rfam:
+    """
+    Make a nucleotide database for the sequences in Rfam
+    """
+    input:
+        fa = download + "Rfam.fa.gz"
+    output:
+        db = touch(db + "Rfam")
+    log:
+        db + "makeblastdb_rfam.log"
+    benchmark:
+        db + "makeblastdb_rfam.json"
+    shell:
+        "gzip --decompress --stdout {input.fa} "
+        "| makeblastdb "
+            "-dbtype nucl "
+            "-title {output.db} "
+            "-out {output.db} "
+        "2> {log} 1>&2"
+
+
+
+rule db_cmpress_rfam_cm:
+    """
+    Make a CM database for Rfam
+    """
+    input:
+        cm_gz = download + "Rfam.cm.gz"
+    output:
+        cm = db + "Rfam.cm"
+    log:
+        db + "cmpress_rfam_cm.log"
+    benchmark:
+        db + "cmpress_rfam_cm.json"
+    shell:
+        "gzip "
+            "--decompress --keep --stdout "
+            "{input.cm_gz} "
+        "> {output.cm} "
+        "2> {log}; "
+        "cmpress {output.cm} "
+        "2>> {log} 1>&2"
+
+
+
+rule db_makeblastdb_hairpin:
+    """
+    makeblastdb on hairpins (mirnas)
+    """
+    input:
+        fa_gz = download + "hairpin.fa.gz"
+    output:
+        db = touch(db + "hairpin")
+    log:
+        db + "makeblastdb_hairpin.log"
+    benchmark:
+        db + "makeblastdb_hairpin.json"
+    shell:
+        "gzip --decompress --stdout {input.fa_gz} "
+        "| makeblastdb "
+            "-dbtype nucl "
+            "-title {output.db} "
+            "-out {output.db} "
+        "2> {log} 1>&2"
+
+
+
+rule db_makeblastdb_swissprot:
+    """
+    makeblastdb on swissprot
+    """
+    input:
+        fa_gz = download + "swissprot.fa.gz"
+    output:
+        db = touch(db + "swissprot")
+    log:
+        db + "makeblastdb_swissprot.log"
+    benchmark:
+        db + "makeblastdb_swissprot.json"
+    shell:
+        "gzip --decompress --stdout {input.fa_gz} "
+        "| makeblastdb "
+            "-dbtype prot "
+            "-title {output.db} "
+            "-out {output.db} "
+        "2> {log} 1>&2"

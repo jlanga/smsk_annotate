@@ -1,0 +1,106 @@
+rule ncrnas_transcriptome_split:
+    """
+    Split the transcriptome into multiple chunks
+    """
+    input:
+        fai = raw + "transcriptome.fa.fai"
+    output:
+        dynamic(
+            ncrnas + "chunks/transcriptome_{chunk_id}.tsv"
+        )
+    params:
+        chunk_size = config["chunk_size"]["ncrnas_blastn"]
+    log:
+        ncrnas + "transcriptome_split.log"
+    benchmark:
+        ncrnas + "transcriptome_split.json"
+    shell:
+        "cut -f 1 {input.fai} "
+        "| split "
+            "--lines {params.chunk_size} "
+            "--numeric-suffixes "
+            "--suffix-length 5 "
+            "--additional-suffix .tsv "
+            "- "
+            "{ncrnas}/chunks/transcriptome_ "
+        "2> {log}"
+
+
+
+rule ncrnas_blastn_chunk:
+    """
+    Blastn each chunk into the Rfam blastn database
+    """
+    input:
+        fasta = raw + "transcriptome.fa",
+        fai = raw + "transcriptome.fa.fai",
+        chunk = ncrnas + "chunks/transcriptome_{chunk_id}.tsv",
+        db = db + "Rfam"
+    output:
+        tsv = ncrnas + "chunks/blastn_{chunk_id}.tsv"
+    log:
+        ncrnas + "chunks/blastn_{chunk_id}.log"
+    benchmark:
+        ncrnas + "chunks/blastn_{chunk_id}.json"
+    shell:
+        "cat {input.chunk} "
+        "| xargs samtools faidx {input.fasta} "
+        "| blastn "
+            "-db {input.db} "
+            "-max_target_seqs 1 "
+            "-outfmt 6 "
+            "-evalue 1e-5 "
+            "-out {output.tsv} " 
+        "2> {log} 1>&2"
+
+
+
+rule ncrnas_candidates_chunk:
+    """
+    Create a fasta for each recovered ncrna chunk
+    """
+    input:
+        fasta = raw + "transcriptome.fa",
+        fai = raw + "transcriptome.fa.fai",
+        blast_table  = dynamic(ncrnas + "chunks/blastn_{chunk_id}.tsv")
+    output:
+        fasta_chunk = ncrnas + "candidates.fasta"
+    log:
+        ncrnas + "candidates.log"
+    benchmark:
+        ncrnas + "candiates.json"   
+    shell:
+        "cut -f 1 {input.blast_table} "
+        "| sort -u "
+        "| xargs samtools faidx {input.fasta} "
+        "> {output.fasta_chunk} "
+        "2> {log}"
+
+
+
+rule ncrnas_cmsearch_chunk:
+    """
+    Run cmsearch over each chunk
+    """
+    input:
+        fasta =  ncrnas + "candidates.fasta",
+        cm = db + "Rfam.cm"
+    output:
+        tsv = ncrnas + "cmsearch.tsv",
+        stats = ncrnas + "cmsearch.stats"
+    threads:
+        24
+    log:
+        ncrnas + "cmsearch.log"
+    benchmark:
+        ncrnas + "cmsearch.json"
+    shell:
+        "cmsearch "
+            "--cpu {threads} "
+            "--cut_ga "
+            "--tblout {output.tsv} "
+            "-o {output.stats} "
+            "{input.cm} "
+            "{input.fasta} "
+        "> {output.tsv} "
+        "2> {log}"

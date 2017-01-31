@@ -1,6 +1,47 @@
-samples:
-    A: results/raw/samples/A.fastq
-    B: results/raw/samples/B.fastq
-
 urls:
-    tarball: https://bitbucket.org/snakemake/snakemake/downloads/snakemake-tutorial-data.tar.gz
+    swissprot: ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
+    nt: ftp://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/nt.gz
+    nr: ftp://ftp.ncbi.nih.gov/blast/db/FASTA/nr.gz
+    uniref90: ftp://ftp.uniprot.org/pub/databases/uniprot/uniref/uniref90/uniref90.fasta.gz
+    pfamA: ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/Pfam-A.hmm.gz
+    mirbase: ftp://mirbase.org/pub/mirbase/CURRENT/hairpin.fa.gz
+    rfam_fa_template: ftp://ftp.ebi.ac.uk/pub/databases/Rfam/12.0/fasta_files/
+    rfam_cm: ftp://ftp.ebi.ac.uk/pub/databases/Rfam/12.0/Rfam.cm.gz
+    uniprot2reactome: http://www.reactome.org/download/current/UniProt2Reactome_All_Levels.txt
+
+
+taxid: "32443" # Teleosts
+
+gi_list: "data/gi_list_txid32443_20160310.tsv"
+
+sequences:
+    fasta: data/sequences/test.fa
+
+busco:
+    species: "zebrafish" # Species used for the actinopterygii dataset in agusutus. See Busco documentation 
+    db_urls:
+        vertebrata_odb9:     "http://busco.ezlab.org/datasets/vertebrata_odb9.tar.gz"
+        metazoa_odb9:        "http://busco.ezlab.org/datasets/metazoa_odb9.tar.gz"
+        eukaryota_odb9:      "http://busco.ezlab.org/datasets/eukaryota_odb9.tar.gz"
+        actinopterygii_odb9: "http://busco.ezlab.org/v2/datasets/actinopterygii_odb9.tar.gz"
+cog:
+    urls:
+        readme:   "ftp://ftp.ncbi.nih.gov/pub/COG/COG2014/data/Readme.201502.txt"
+        cog:      "ftp://ftp.ncbi.nih.gov/pub/COG/COG2014/data/cog2003-2014.csv"
+        cognames: "ftp://ftp.ncbi.nih.gov/pub/COG/COG2014/data/cognames2003-2014.tab"
+        fun:      "ftp://ftp.ncbi.nih.gov/pub/COG/COG2014/data/fun2003-2014.tab"
+        genomes:  "ftp://ftp.ncbi.nih.gov/pub/COG/COG2014/data/genomes2003-2014.tab"
+        fasta:    "ftp://ftp.ncbi.nih.gov/pub/COG/COG2014/data/prot2003-2014.fa.gz"
+        prot:     "ftp://ftp.ncbi.nih.gov/pub/COG/COG2014/data/prot2003-2014.tab"
+
+chunk_size:
+    transdecoder: 10 # Same for blastx and hmmscan
+    swissprot_blastp: 10
+    uniref90_blastp: 10
+    subsetnr_blastp: 10
+    pfam_hmmscan: 10
+    cog_blastp: 10
+    ncrnas_blastn: 10
+    ncrnas_cmsearch: 10
+    mirnas_blastn: 10
+

@@ -1,0 +1,216 @@
+rule transdecoder_longorfs:
+    """
+    Predict proteins according to the presence of long ORFs
+    """
+    input:
+        fasta = raw + "transcriptome.fa",
+    output:
+        "transcriptome.fa.transdecoder_dir/longest_orfs.pep",
+        temp(
+            "transcriptome.fa.transdecoder_dir/"
+        )
+    log:
+        transdecoder + "longorfs.log"
+    benchmark:
+        transdecoder + "longorfs.json"
+    shell:
+        "TransDecoder.LongOrfs "
+            "-t {input.fasta} "
+        "2> {log} 1>&2"
+
+
+
+rule transdecoder_index_longest_orfs:
+    """
+    Create samtools index for longest_orfs.pep
+    """
+    input:
+        pep = "transcriptome.fa.transdecoder_dir/longest_orfs.pep"
+    output:
+        fai = temp("transcriptome.fa.transdecoder_dir/longest_orfs.pep.fai")
+    log:
+        transdecoder + "index_longest_orfs.log"
+    benchmark:
+        transdecoder + "index_longest_orfs.json"
+    shell:
+        "samtools faidx {input.pep} 2> {log}"
+
+
+
+rule transdecoder_split_longest_orfs:
+    """
+    Split the headers from transdecoder_longest_orfs into multiple files
+    """
+    input:
+        fai = "transcriptome.fa.transdecoder_dir/longest_orfs.pep.fai"
+    output:
+        temp(dynamic(
+            transdecoder + "chunks/longest_orfs_{chunk_id}.tsv"
+        ))
+    params:
+        chunk_size = config["chunk_size"]["transdecoder"]
+    log:
+        transdecoder + "split_longest_orfs.log"
+    benchmark:
+        transdecoder + "split_longest_orfs.json"
+    shell:
+        "cut -f 1 {input.fai} "
+        "| split "
+            "--lines {params.chunk_size} "
+            "--numeric-suffixes "
+            "--suffix-length 5 "
+            "--additional-suffix .tsv "
+            "- "
+            "{transdecoder}/chunks/longest_orfs_ "
+        "2> {log}"
+
+
+
+
+rule transdecoder_hmmscan_chunk:
+    """
+    hmmscan over one chunk
+    """
+    input:
+        pep = "transcriptome.fa.transdecoder_dir/longest_orfs.pep",
+        fai = "transcriptome.fa.transdecoder_dir/longest_orfs.pep.fai",
+        chunk = transdecoder + "chunks/longest_orfs_{chunk_id}.tsv",
+        hmm = db + "Pfam-A.hmm"
+    output:
+        tsv = transdecoder + "hmmscan/longest_orfs_{chunk_id}.tsv"
+    log:
+        transdecoder + "hmmscan/longest_orfs_{chunk_id}.log"
+    benchmark:
+        transdecoder + "hmmscan/longest_orfs_{chunk_id}.json"
+    shell:
+        "cat {input.chunk} "
+        "| xargs samtools faidx {input.pep} "
+        "| hmmscan "
+            "--domtblout {output.tsv} "
+            "{input.hmm} "
+            "- "
+        "2> {log} 1>&2"
+
+
+
+rule transdecoder_hmmscan_merge:
+    """
+    Merge hmmscan results into one file
+    """
+    input:
+        dynamic(transdecoder + "hmmscan/{chunk_id}.tsv")
+    output:
+        tsv = transdecoder + "hmmscan.tsv"
+    log:
+        transdecoder + "hmmscan_merge.log"
+    benchmark:
+        transdecoder + "hmmscan_merge.json"
+    shell:
+        "cat {input} > {output} 2> {log}"
+
+
+
+rule transdecoder_blastp_chunk:
+    """
+    Run blastp of each chunk
+    """
+    input:
+        pep = "transcriptome.fa.transdecoder_dir/longest_orfs.pep",
+        fai = "transcriptome.fa.transdecoder_dir/longest_orfs.pep.fai",
+        chunk = transdecoder + "chunks/longest_orfs_{chunk_id}.tsv",
+        db = db + "subset_nr"
+    output:
+        tsv = transdecoder + "blastp/longest_orfs_{chunk_id}.tsv"
+    log:
+        transdecoder + "blastp/longest_orfs_{chunk_id}.log"
+    benchmark:
+        transdecoder + "blastp/longest_orfs_{chunk_id}.json"
+    shell:
+        "cat {input.chunk} "
+        "| xargs samtools faidx {input.pep} "
+        "| blastp "
+            "-db {input.db} "
+            "-max_target_seqs 1 "
+            "-outfmt 6 "
+            "-evalue 1e-5 "
+            "-out {output.tsv} " 
+        "2> {log} 1>&2"
+
+
+
+rule transdecoder_blastp_merge:
+    """
+    Merge results from the different blastps
+    """
+    input:
+        dynamic(transdecoder + "blastp/longest_orfs_{chunk_id}.tsv")
+    output:
+        tsv = transdecoder + "blastp.tsv"
+    log:
+        transdecoder + "blastp_merge.log"
+    benchmark:
+        transdecoder + "blastp_merge.json"
+    shell:
+        "cat {input} > {output} 2> {log}"
+
+
+
+
+rule transdecoder_predict:
+    """
+    Join results from blast and hmmr to predict coding sequences
+    """
+    input:
+        fasta = raw + "transcriptome.fa",
+        pfam_tsv = transdecoder + "hmmscan.tsv",
+        blastp_tsv = transdecoder + "blastp.tsv",
+        folder = "transcriptome.fa.transdecoder_dir/"
+    output:
+        bed  = transdecoder + "transdecoder.bed",
+        cds  = transdecoder + "transdecoder.cds",
+        gff3 = transdecoder + "transdecoder.gff3",
+        pep  = transdecoder + "transdecoder.pep",
+    params:
+        dir = "transcriptome.fa.transdecoder_dir",
+        bed  = "transcriptome.fa.transdecoder.bed",
+        cds  = "transcriptome.fa.transdecoder.cds",
+        gff3 = "transcriptome.fa.transdecoder.gff3",
+        pep  = "transcriptome.fa.transdecoder.pep",
+    threads:
+        24
+    log:
+        transdecoder + "predict.log"
+    benchmark:
+        transdecoder + "predict.json"
+    shell:
+        "TransDecoder.Predict "
+            "-t {input.fasta} "
+            "--retain_pfam_hits {input.pfam_tsv} "
+            "--retain_blastp_hits {input.blastp_tsv} "
+            "--cpu {threads} "
+        "2> {log} 1>&2 ;"
+        "mv {params.bed} {output.bed} 2>> {log} 1>&2; "
+        "mv {params.cds} {output.cds} 2>> {log} 1>&2; "
+        "mv {params.gff3} {output.gff3} 2>> {log} 1>&2; "
+        "mv {params.pep} {output.pep} 2>> {log} 1>&2; "
+        "rm -rf {params.dir} 2>> {log} 1>&2"
+
+
+
+rule transdecoder_index_results:
+    """
+    Build samtools' fasta indexes to the proteome and cds
+    """
+    input:
+        cds  = transdecoder + "transdecoder.cds",
+        pep  = transdecoder + "transdecoder.pep"
+    output:
+        cds  = transdecoder + "transdecoder.cds.fai",
+        pep  = transdecoder + "transdecoder.pep.fai"
+    log:
+        transdecoder + "index_results.log"
+    benchmark:
+        transdecoder + "index_results.json"
+    shell:
+        "samtools faidx {input.cds}; "
+        "samtools faidx {input.pep}"

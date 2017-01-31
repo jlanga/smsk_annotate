@@ -1,0 +1,62 @@
+rule nrsubset_split_pep:
+    input:
+        fai = transdecoder + "transdecoder.pep.fai"
+    output:
+        temp(dynamic(
+            nr + "chunks/transdecoder_{chunk_id}.tsv"
+        ))
+    params:
+        chunk_size = config["chunk_size"]["subsetnr_blastp"]
+    log:
+        nr + "split_pep.log"
+    benchmark:
+        nr + "split_pep.json"
+    shell:
+        "cut -f 1 {input.fai} "
+        "| split "
+            "--lines {params.chunk_size} "
+            "--numeric-suffixes "
+            "--suffix-length 5 "
+            "--additional-suffix .tsv "
+            "- "
+            "{nr}/chunks/transdecoder_ "
+        "2> {log}"
+
+
+
+rule nrsubset_blastp_chunk:
+    input:
+        pep = transdecoder + "transdecoder.pep",
+        fai = transdecoder + "transdecoder.pep.fai",
+        chunk = nr + "chunks/transdecoder_{chunk_id}.tsv",
+        db = db + "subset_nr"
+    output:
+        tsv = nr + "blastp/transdecoder_{chunk_id}.tsv"
+    log:
+        nr + "blastp/transdecoder_{chunk_id}.log"
+    benchmark:
+        nr + "blastp/transdecoder_{chunk_id}.json"
+    shell:
+        "cat {input.chunk} "
+        "| xargs samtools faidx {input.pep} "
+        "| blastp "
+            "-db {input.db} "
+            "-max_target_seqs 1 "
+            "-outfmt 6 "
+            "-evalue 1e-5 "
+            "-out {output.tsv} " 
+        "2> {log} 1>&2"
+
+
+
+rule nrsubset_blastp_merge:
+    input:
+        dynamic(nr + "blastp/transdecoder_{chunk_id}.tsv")
+    output:
+        tsv = nr + "blastp.tsv"
+    log:
+        nr + "blastp_merge.log"
+    benchmark:
+        nr + "blastp_merge.json"
+    shell:
+        "cat {input} > {output} 2> {log}"

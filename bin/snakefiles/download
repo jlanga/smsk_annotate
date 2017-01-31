@@ -1,0 +1,255 @@
+rule download_nr:
+    """
+    Download the entire NR fasta from the URL in the config.yaml
+    """
+    output:
+        download + "nr.fa.gz"
+    params:
+        url = config["urls"]["nr"]
+    log:
+        download + "download_nr.log"
+    benchmark:
+        download + "download_nr.json"
+    shell:
+        "wget "
+            "--output-document {output} "
+            "--continue "
+            "{params.url} "
+        "2> {log}"
+
+
+
+rule download_nt:
+    """
+    Download the entire NT fasta from the URL in the config.yaml
+    """
+    output:
+        download + "nt.fa.gz"
+    params:
+        url = config["urls"]["nr"]
+    log:
+        download + "download_nr.log"
+    benchmark:
+        download + "download_nr.json"
+    shell:
+        "wget "
+            "--output-document {output} "
+            "--continue "
+            "{params.url} "
+        "2> {log} 1>&2"
+
+
+
+rule download_pfama:
+    """
+    Download the Pfam-A hidden markov model.
+    """
+    output:
+        download + "Pfam-A.hmm.gz"
+    params:
+        url = config["urls"]["pfamA"]
+    log:
+        download + "pfama.log"
+    benchmark:
+        download + "pfamA.json"
+    shell:
+        "wget "
+            "--continue "
+            "--output-document {output.hmm_gz} "
+            "{params.url} "
+        "2> {log} 1>&2"
+
+
+
+rule download_uniref90:
+    """
+    Download the Uniref90 fasta from the URL in the config.yaml
+    """
+    output:
+        download + "uniref90.fa.gz"
+    params:
+        url = config["urls"]["uniref90"]
+    log:
+        download + "uniref90.log"
+    benchmark:
+        download + "uniref90.json"
+    shell:
+        "wget "
+            "--output-document {output} "
+            "--continue "
+            "{params.url} "
+        "2> {log}"
+
+
+
+rule download_busco_lineage:
+    """
+    Get from the website the corresponding tarball.
+    """
+    output:
+        tarball = download + "{lineage}.tar.gz",
+    params:
+        url= lambda wildcards: config["busco"]["db_urls"][wildcards.lineage]
+    log:
+        download + "busco_{lineage}.log"
+    benchmark:
+        download + "busco_{lineage}.log"
+    shell:
+        "wget "
+            "--output-document {output.tarball} "
+            "{params.url} "
+        "2> {log}"
+
+
+
+rule download_cog:
+    """
+    Download the tables and fasta from COG
+    """
+    output:
+        readme = cog + "readme",
+        cog = cog + "cog2003-2014.csv",
+        cognames = cog + "cognames2003-2014.tab",
+        fun = cog + "fun2003-2014.tab",
+        genomes = cog + "genomes2003-2014.tab",
+        fa_gz = db + "prot2003-2014.fa.gz", # DB!!!
+        prot = cog + "prot2003-2014.tab"
+    params:
+        url_readme =   config["cog"]["urls"]["readme"],
+        url_cog =      config["cog"]["urls"]["cog"],
+        url_cognames = config["cog"]["urls"]["cognames"],
+        url_fun =      config["cog"]["urls"]["fun"],
+        url_genomes =  config["cog"]["urls"]["genomes"],
+        url_fasta =    config["cog"]["urls"]["fasta"],
+        url_prot =     config["cog"]["urls"]["prot"]
+    log:
+        download + "cog.log"
+    benchmark:
+        download + "cog.json"
+    shell:
+        "wget "
+            "--output-document {output.readme} "
+            "--continue "
+            "{params.url_readme} "
+        "2> {log} 1>&2; "
+        "wget "
+            "--output-document {output.cog} "
+            "--continue "
+            "{params.url_cog} "
+        "2>> {log} 1>&2; "
+        "wget "
+            "--output-document {output.cognames} "
+            "--continue "
+            "{params.url_cognames} "
+        "2>> {log} 1>&2; "
+        "wget "
+            "--output-document {output.fun} "
+            "--continue "
+            "{params.url_fun} "
+        "2>> {log} 1>&2; "
+        "wget "
+            "--output-document {output.genomes} "
+            "--continue "
+            "{params.url_genomes} "
+        "2>> {log} 1>&2; "
+        "wget "
+            "--output-document {output.fa_gz} "
+            "--continue "
+            "{params.url_fasta} "
+        "2>> {log} 1>&2; "
+        "wget "
+            "--output-document {output.prot} "
+            "--continue "
+            "{params.url_prot} "
+        "2>> {log} 1>&2; "
+
+
+
+rule download_rfam:
+    """
+    Download Rfam in fasta format. One fasta file per family. Then they are merged together.
+    """
+    output:
+        fa = download + "Rfam.fa.gz",
+    params:
+        rfam_dir = download + "Rfam_fa/",
+        url = config["urls"]["rfam_fa_template"],
+    log:
+        download + "rfam.log"
+    benchmark:
+        download + "rfam.log"
+    shell:
+        "wget "
+            "--continue "
+            "--recursive "
+            "--no-parent "
+            "--no-host-directories "
+            "--cut-dirs=5 "
+            "--directory-prefix {params.rfam_dir} "
+            "{params.url} "
+        "2> {log} 1>&2; "
+        "gzip --decompress --stdout {params.rfam_dir}/*.fa.gz "
+        "| pigz --best > {output} 2>> {log}"
+
+
+
+rule download_rfam_cm:
+    """
+    Download the Rfam Covariance Models form the URL in the config.yaml
+    """
+    output:
+        cm_gz = download + "Rfam.cm.gz"
+    params:
+        url = config["urls"]["rfam_cm"]
+    log:
+        download + "rfam_cm.log"
+    benchmark:
+        download + "rfam_cm.json"
+    shell:
+        "wget "
+            "--continue "
+            "--output-document {output.cm_gz} "
+            "{params.url} "
+        "2> {log} 1>&2"
+
+
+
+rule download_swissprot:
+    """
+    Download the entire SwissProt fasta from the URL in the config.yaml
+    """
+    output:
+        download + "swissprot.fa.gz"
+    params:
+        url = config["urls"]["swissprot"]
+    log:
+        download + "download_swissprot.log"
+    benchmark:
+        download + "download_swissprot.json"
+    shell:
+        "wget "
+            "--output-document {output} "
+            "--continue "
+            "{params.url} "
+        "2> {log}"
+
+
+
+rule download_hairpin:
+    """
+    Download the hairpings from miRbase
+    """
+    output:
+        fa_gz = download + "hairpin.fa.gz"
+    params:
+        url = config["urls"]["mirbase"]
+    log:
+        download + "download_hairpin.log"
+    benchmark:
+        download + "download_haripin.json"
+    shell:
+        "wget "
+            "--continue "
+            "--output-document {output.fa_gz} "
+            "{params.url} "
+        "2> {log} 1>&2"

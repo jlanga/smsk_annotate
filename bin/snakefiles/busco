@@ -1,0 +1,63 @@
+rule busco_analysis_lineage:
+    """
+    Perform the Busco analysis.
+    """
+    input:
+        transcriptome = raw + "transcriptome.fa",
+        lineage       = db + "{lineage}/"
+    output:
+        folder     = busco + "{lineage}/",
+        full_table = busco + "{lineage}/full_table_{lineage}.tsv",
+        short_table = busco + "{lineage}/short_summary_{lineage}.txt"
+    threads:
+        4
+    params:
+        lineage = "{lineage}",
+        run_folder = "run_{lineage}/",
+        temp_folder = "temp_{lineage}/",
+        species = config["busco"]["species"]
+    log:
+        busco + "analysis_{lineage}.log"
+    benchmark:
+        busco + "analysis_{lineage}.json"
+    shell:
+        "busco "
+            "--in {input.transcriptome} "
+            "--out {params.lineage} "
+            "--mode tran "
+            "--lineage {input.lineage} "
+            "--cpu {threads} "
+            "--tmp {params.temp_folder} "
+            "--species {params.species}"
+            "--long "
+        "2> {log} 1>&2; "
+        "mv {params.run_folder}/* {output.folder}/; "
+        "rm -rf {params.temp_folder} {params.run_folder}"
+
+
+
+rule busco_plot:
+    """
+    Plot Busco results
+    """
+    input:
+        expand(
+            busco + "{lineage}/short_summary_{lineage}.txt",
+            lineage = config["busco"]["db_urls"]
+        )
+    output:
+        temp(expand(
+            busco + "short_summary_{lineage}.txt",
+            lineage = config["busco"]["db_urls"]
+        )),
+        script = busco + "busco_figure.R",
+        png = busco + "busco_figure.png"
+    params:
+        busco_folder = busco
+    log:
+        busco + "plot.log"
+    benchmark:
+        busco + "plot.json"
+    shell:
+        "cp {input} {params.busco_folder}; "
+        "busco_plot -wd {params.busco_folder} 2> {log} 1>&2"
