@@ -12,3 +12,5 @@ trnascan-se
 transdecoder
 busco
 pigz
+pandas
+bioservices

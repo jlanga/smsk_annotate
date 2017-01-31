@@ -17,8 +17,7 @@ include: snakefiles + "ncrnas"
 # include: snakefiles + "cog"
 include: snakefiles + "trnas"
 include: snakefiles + "mirnas"
-# include: snakefiles + "ncrnas"
-# include: snakefiles + "bioservices"
+include: snakefiles + "bioservices"
 # include: snakefiles + "go"
 # include: snakefiles + "reactome"
 # include: snakefiles + "qdd"
@@ -37,6 +36,7 @@ rule all:
         ncrnas + "cmsearch.tsv",
         trnas + "trnascanse.tsv",
         mirnas + "candidates.fa",
+        bioservices + "query_swissprot.tsv",
         #ipro         + "ipro.tsv",
         #cog + "functions.pdf",
         
