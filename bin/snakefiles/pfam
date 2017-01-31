@@ -1,0 +1,69 @@
+rule pfam_transdecoder_split:
+    """
+    Split the transdecoder into multiple chunks
+    """
+    input:
+        fai = transdecoder + "transdecoder.pep.fai"
+    output:
+        dynamic(
+            pfam + "chunks/transdecoder_{chunk_id}.tsv"
+        )
+    params:
+        chunk_size = config["chunk_size"]["pfam_hmmscan"]
+    log:
+        pfam + "transdecoder_split.log"
+    benchmark:
+        pfam + "transdecoder_split.json"
+    shell:
+        "cut -f 1 {input.fai} "
+        "| split "
+            "--lines {params.chunk_size} "
+            "--numeric-suffixes "
+            "--suffix-length 5 "
+            "--additional-suffix .tsv "
+            "- "
+            "{pfam}/chunks/transdecoder_ "
+        "2> {log}"
+
+
+
+rule pfam_hmmscan_chunk:
+    """
+    hmmscan over one chunk
+    """
+    input:
+        pep = transdecoder + "transdecoder.pep",
+        fai = transdecoder + "transdecoder.pep.fai",
+        chunk = pfam + "chunks/transdecoder_{chunk_id}.tsv",
+        hmm = db + "Pfam-A.hmm"
+    output:
+        tsv = pfam + "chunks/hmmscan_{chunk_id}.tsv"
+    log:
+        pfam + "chunks/hmmscan_{chunk_id}.log"
+    benchmark:
+        pfam + "chunks/hmmscan_{chunk_id}.json"
+    shell:
+        "cat {input.chunk} "
+        "| xargs samtools faidx {input.pep} "
+        "| hmmscan "
+            "--domtblout {output.tsv} "
+            "{input.hmm} "
+            "- "
+        "2> {log} 1>&2"
+
+
+
+rule pfam_hmmscan_merge:
+    """
+    Merge hmmscan results into one file
+    """
+    input:
+        dynamic(pfam + "chunks/hmmscan_{chunk_id}.tsv")
+    output:
+        tsv = pfam + "hmmscan.tsv"
+    log:
+        pfam + "hmmscan_merge.log"
+    benchmark:
+        pfam + "hmmscan_merge.json"
+    shell:
+        "grep -v ^# {input} > {output} 2> {log}"
