@@ -31,7 +31,7 @@ rule all:
             extension = "bed cds gff3 pep".split()
         ),
         swissprot + "blastp.tsv",
-        uniref90 + "blastp.tsv",
+        #uniref90 + "blastp.tsv",
         nr + "blastp.tsv",
         pfam + "hmmscan.tsv",
         busco + "busco_figure.png", 

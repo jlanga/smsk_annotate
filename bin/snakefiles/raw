@@ -1,4 +1,4 @@
-rule raw_link_transcriptome: ##data/sequences/transcriptome.fa - Link to the assembled transcriptome
+rule raw_copy_transcriptome: ##data/sequences/transcriptome.fa - Link to the assembled transcriptome
     input:
         fasta = config["sequences"]["fasta"]
     output:
@@ -6,11 +6,11 @@ rule raw_link_transcriptome: ##data/sequences/transcriptome.fa - Link to the ass
     threads:
         1
     log:
-        raw + "link_transcriptome.log"
+        raw + "copy_transcriptome.log"
     benchmark:
-        raw + "link_transcriptome.json"
+        raw + "copy_transcriptome.json"
     shell:
-        "ln --symbolic "
+        "cp "
             "$(readlink --canonicalize {input.fasta}) "
             "{output.fasta} "
         "2> {log} 1>&2"
