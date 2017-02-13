@@ -286,10 +286,36 @@ rule download_panther_hmm:
     benchmark:
         download + "panther_hmm.json"
     shell:
-        """
-        wget \
-            --continue \
-            --output-document {output.tarball} \
-            {params.url} \
-        2> {log} 1>&2
-        """
+        "wget "
+            "--continue "
+            "--output-document {output.tarball} "
+            "{params.url} "
+        "2> {log} 1>&2"
+
+
+
+rule download_gi_list:
+    """
+    Download all the GIs associated with the taxid introduced in the config.yaml
+    """
+    output:
+        tsv = download + "gi_list.tsv"
+    params:
+        url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?"
+            "db=protein&"
+            "term=txid{}[ORGN]&"
+            "retmax=100000000".format(config["taxid"])
+    log:
+        download + "gi_list.log"
+    benchmark:
+        download + "gi_list.json"
+    shell:
+        "(wget "
+            "--output-document - "
+            "'{params.url}' "
+        "| grep "
+            "--only-matching "
+            "--perl-regexp "
+            "'(?<=<Id>)\w+(?=</Id>)' "
+        "> {output.tsv}) "
+        "2> {log}"

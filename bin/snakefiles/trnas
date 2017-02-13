@@ -16,5 +16,5 @@ rule trnas_trnascanse_run:
             "yookuda/trnascan_se "
             "tRNAscan-SE "
                 "-o {output.tsv} "
-                "results/raw/transcriptome.fa "
+                "{input.fa} "
         "2> {log} 1>&2"

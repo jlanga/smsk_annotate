@@ -12,11 +12,11 @@ urls:
 
 taxid: "32443" # Teleosts
 
-gi_list: "data/gi_list_txid32443_20160310.tsv"
+gi_list: "txid32443"
 
 sequences:
-    fasta: data/sequences/454Isotigs.fna
-    #fasta: data/sequences/test.fa
+    #fasta: data/sequences/454Isotigs.fna
+    fasta: data/sequences/test.fa
 
 busco:
     species: "zebrafish" # Species used for the actinopterygii dataset in agusutus. See Busco documentation 
@@ -36,13 +36,13 @@ cog:
         prot:     "ftp://ftp.ncbi.nih.gov/pub/COG/COG2014/data/prot2003-2014.tab"
 
 number_of_chunks: # Please use #chunks < #sequences
-    transdecoder: 50 # Same for blastx and hmmscan
-    swissprot_blastp: 30
-    uniref90_blastp: 30
-    nrsubset_blastp: 30
-    pfam_hmmscan: 30
-    cog_blastp: 30
-    ncrnas: 50 # same for blastn and cmsearch
-    mirnas_blastn: 50
-    panther: 10 # Careful. Memory hungry ~ 2-3 Gb per process
+    transdecoder: 20 # Same for blastx and hmmscan
+    swissprot_blastp: 20
+    uniref90_blastp: 20
+    nrsubset_blastp: 20
+    pfam_hmmscan: 20
+    cog_blastp: 20
+    ncrnas: 20 # same for blastn and cmsearch
+    mirnas_blastn: 20
+    panther: 10 # Careful. Memory hungry: 2-3 Gb per process
 

@@ -32,7 +32,7 @@ rule nrsubset_blastp_chunk:
         pep = transdecoder + "transdecoder.pep",
         fai = transdecoder + "transdecoder.pep.fai",
         chunk = nr + "chunks/transdecoder_{chunk_id}.tsv",
-        db = db + "nr_subset"
+        db = db + "subset_nr"
     output:
         tsv = nr + "blastp/transdecoder_{chunk_id}.tsv"
     log:

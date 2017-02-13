@@ -29,7 +29,7 @@ rule db_subset_nr:
     """
     input:
         db = db + "nr",
-        gi_list = config["gi_list"]
+        gi_list = download + "gi_list.tsv"
     output:
         db = touch(db + "subset_nr"),
         pal = db + "subset_nr.pal",
