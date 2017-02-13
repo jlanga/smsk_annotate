@@ -14,12 +14,13 @@ include: snakefiles + "uniref90"
 include: snakefiles + "pfam"
 include: snakefiles + "busco"
 include: snakefiles + "ncrnas"
-# include: snakefiles + "cog"
+include: snakefiles + "panther"
+include: snakefiles + "cog"
 include: snakefiles + "trnas"
-include: snakefiles + "mirnas"
+#include: snakefiles + "mirnas"
 include: snakefiles + "bioservices"
 include: snakefiles + "go"
-# include: snakefiles + "reactome"
+include: snakefiles + "reactome"
 # include: snakefiles + "qdd"
 # include: snakefiles + "interproscan"
 
@@ -29,16 +30,20 @@ rule all:
             transdecoder + "transdecoder.{extension}",
             extension = "bed cds gff3 pep".split()
         ),
+        swissprot + "blastp.tsv",
         uniref90 + "blastp.tsv",
         nr + "blastp.tsv",
         pfam + "hmmscan.tsv",
         busco + "busco_figure.png", 
         ncrnas + "cmsearch.tsv",
         trnas + "trnascanse.tsv",
-        mirnas + "candidates.fa",
+        #mirnas + "candidates.fa",
         bioservices + "query_swissprot.tsv",
+        go +  "go_annotation.tsv",
+        reactome + "reactome_top.pdf",
+        panther + "pantherScore.tsv",
         #ipro         + "ipro.tsv",
-        #cog + "functions.pdf",
+        cog + "functions.pdf",
         
         
        

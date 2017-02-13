@@ -1,0 +1,14 @@
+rule bioservices_query_swissprot:
+    input:
+        tsv = swissprot + "blastp.tsv"
+    output:
+        tsv = bioservices + "query_swissprot.tsv"
+    log:
+        bioservices + "query_swissprot.log"
+    benchmark:
+        bioservices + "query_swissprot.json"
+    shell:
+        "python3 bin/annotate_with_bioservices_swissprot.py "
+            "{input.tsv} "
+            "{output.tsv} "
+        "2> {log} 1>&2"

@@ -1,0 +1,132 @@
+rule cog_split_pep:
+    input:
+        fai = transdecoder + "transdecoder.pep.fai"
+    output:
+        expand(
+            cog + "chunks/transdecoder_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["cog_blastp"])
+            ]
+        ),
+    params:
+        number_of_chunks = config["number_of_chunks"]["cog_blastp"]
+    log:
+        cog + "split_pep.log"
+    benchmark:
+        cog + "split_pep.json"
+    shell:
+        "split "
+            "--number l/{params.number_of_chunks} "
+            "--numeric-suffixes "
+            "--suffix-length 5 "
+            "--additional-suffix .tsv "
+            "{input.fai} "
+            "{cog}/chunks/transdecoder_ "
+        "2> {log}"
+
+
+
+rule cog_blastp_chunk:
+    input:
+        pep = transdecoder + "transdecoder.pep",
+        fai = transdecoder + "transdecoder.pep.fai",
+        chunk = cog + "chunks/transdecoder_{chunk_id}.tsv",
+        db = db + "cog"
+    output:
+        tsv = cog + "chunks/blastp_{chunk_id}.tsv"
+    log:
+        cog + "chunks/blastp_{chunk_id}.log"
+    benchmark:
+        cog + "chunks/blastp_{chunk_id}.json"
+    shell:
+        "cut -f 1 {input.chunk} "
+        "| xargs samtools faidx {input.pep} "
+        "| blastp "
+            "-db {input.db} "
+            "-max_target_seqs 1 "
+            "-outfmt 6 "
+            "-evalue 1e-5 "
+            "-out {output.tsv} " 
+        "2> {log} 1>&2"
+
+
+
+rule cog_blastp_merge:
+    input:
+        expand(
+            cog + "chunks/blastp_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["cog_blastp"])
+            ]
+        )
+    output:
+        tsv = cog + "blastp.tsv"
+    log:
+        cog + "blastp_merge.log"
+    benchmark:
+        cog + "blastp_merge.json"
+    shell:
+        "cat {input} > {output} 2> {log}"
+
+
+
+rule cog_compute_big_table: ##data/cog/cog_big_table.tsv - The full table from the COG analysis
+    input:
+        cog = download + "cog2003-2014.csv",
+        cognames = download + "cognames2003-2014.tab",
+        fun = download + "fun2003-2014.tab",
+        genomes = download + "genomes2003-2014.tab",
+        prot = download + "prot2003-2014.tab",
+    output:
+        tsv = cog + "cog_big_table.tsv"
+    log:
+        cog + "compute_big_table.log"
+    benchmark:
+        cog + "compute_big_table.json"
+    shell:
+        "Rscript bin/cog_compute_big_table.R "
+            "--cog_table {input.cog} "
+            "--cog_names {input.cognames} "
+            "--functions {input.fun} "
+            "--genomes {input.genomes} "
+            "--proteins {input.prot} "
+            "--output {output.tsv} "
+        "2> {log} 1>&2"
+
+
+
+rule cog_process_blastp:
+    input:
+        cog_full_table = cog + "cog_big_table.tsv",
+        blast_table = cog + "blastp.tsv"
+    output:
+        tsv = cog + "cog_annotation.tsv"
+    log:
+        cog + "process_blastp.log"
+    benchmark:
+        cog + "process_blastp.json"
+    shell:
+        "Rscript bin/cog_process_blast.R "
+            "--full_cog_table {input.cog_full_table} "
+            "--blast_table {input.blast_table} "
+            "--output {output.tsv} "
+        "2> {log}"
+
+
+
+rule cog_plot_functions: ##data/cog/functions.pdf - The barplot with the functions
+    input:
+        tsv = cog + "cog_annotation.tsv"
+    output:
+        pdf = cog + "functions.pdf"
+    log:
+        cog + "plot_functions.log"
+    benchmark:
+        cog + "plot_functions.json"
+    shell:
+        "Rscript bin/cog_plot.R "
+            "--input {input.tsv} "
+            "--output {output.pdf} "
+        "2> {log} 1>&2"

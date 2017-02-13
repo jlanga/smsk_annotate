@@ -5,23 +5,26 @@ rule mirnas_transcriptome_split:
     input:
         fai = raw + "transcriptome.fa.fai"
     output:
-        temp(dynamic(
-            mirnas + "chunks/transcriptome_{chunk_id}.tsv"
-        ))
+        expand(
+            mirnas + "chunks/transcriptome_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["mirnas_blastn"])
+            ]
+        )
     params:
-        chunk_size = config["chunk_size"]["mirnas_blastn"]
+        number_of_chunks = config["number_of_chunks"]["mirnas_blastn"]
     log:
         mirnas + "transcriptome_split.log"
     benchmark:
         mirnas + "transcriptome_split.json"
     shell:
-        "cut -f 1 {input.fai} "
-        "| split "
-            "--lines {params.chunk_size} "
+        "split "
+            "--number l/{params.number_of_chunks} "
             "--numeric-suffixes "
             "--suffix-length 5 "
             "--additional-suffix .tsv "
-            "- "
+            "{input.fai} "
             "{mirnas}/chunks/transcriptome_ "
         "2> {log}"
 
@@ -42,7 +45,7 @@ rule mirnas_blastn_transcriptome_chunk:
     benchmark:
         mirnas + "blastn/transcriptome_{chunk_id}.json"
     shell:
-        "cat {input.chunk} "
+        "cut -f 1 {input.chunk} "
         "| xargs samtools faidx {input.fa} "
         "| blastn "
             "-db {input.db} "
@@ -59,13 +62,19 @@ rule mirnas_blastn_merge:
     Merge the blastn results against the hairpin database
     """
     input:
-        dynamic(mirnas + "blastn/transcriptome_{chunk_id}.tsv")
+        expand(
+            mirnas + "blastn/transcriptome_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["mirnas_blastn"])
+            ]
+        )
     output:
         tsv = mirnas + "blastn.tsv"
     log:
-        mirnas + "blastp_merge.log"
+        mirnas + "blastn_merge.log"
     benchmark:
-        mirnas + "blastp_merge.json"
+        mirnas + "blastn_merge.json"
     shell:
         "cat {input} > {output} 2> {log}"
 

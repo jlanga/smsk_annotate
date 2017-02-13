@@ -1,0 +1,29 @@
+rule reactome_annotation:
+    """
+    Extract and annotate pathways
+    """
+    input:
+        bioservices = bioservices + "query_swissprot.tsv",
+        up2reactome = download + "UniProt2Reactome_All_Levels.txt"
+    output:
+        counts = reactome + "reactome_counts.tsv",
+        tsv = reactome + "reactome_results.tsv",
+        plot = reactome + "reactome_top.pdf"
+    params:
+        counts = "reactome_counts.tsv",
+        tsv = "reactome_results.tsv",
+        plot = "reactome_top.pdf"
+    threads:
+        1
+    log:
+        reactome  + "annotation.log"
+    benchmark:
+        reactome + "annotation.json"
+    shell:
+        "Rscript bin/reactome.R "
+            "{input.bioservices} "
+            "{input.up2reactome} "
+        "2> {log} 1>&2; "
+        "mv {params.counts} {output.counts}; "
+        "mv {params.tsv} {output.tsv}; "
+        "mv {params.plot} {output.plot}"

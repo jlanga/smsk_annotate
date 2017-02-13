@@ -1,0 +1,41 @@
+rule go_annotation:
+    input:
+        tsv = bioservices + "query_swissprot.tsv"
+    output:
+        go_tsv = go + "go_annotation.tsv",
+        bp_pdf = go + "bp.pdf",
+        cc_pdf = go + "cc.pdf",
+        mf_pdf = go + "mf.pdf",
+        bp_tsv = go + "bp_counts.tsv",
+        cc_tsv = go + "cc_counts.tsv",
+        mf_tsv = go + "mf_counts.tsv",
+        category_tsv = go + "category_counts.tsv"
+    params:
+        go_dir = go,
+        go_tsv = "go_annotation.tsv",
+        bp_pdf = "bp.pdf",
+        cc_pdf = "cc.pdf",
+        mf_pdf = "mf.pdf",
+        bp_tsv = "bp_counts.tsv",
+        cc_tsv = "cc_counts.tsv",
+        mf_tsv = "mf_counts.tsv",
+        category_tsv = "category_counts.tsv"
+    threads:
+        1
+    log:
+        go + "annotation.log"
+    benchmark:
+        go + "annotation.json"
+    shell:
+        """
+        Rscript bin/go_annotation.R \
+            {input.tsv} \
+        2> {log} 1>&2
+        
+        mv \
+            {params.go_tsv} \
+            {params.bp_pdf} {params.cc_pdf} {params.mf_pdf} \
+            {params.bp_tsv} {params.cc_tsv} {params.mf_tsv} \
+            {params.category_tsv} \
+            {params.go_dir}
+        """

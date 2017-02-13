@@ -1,29 +1,30 @@
-rule pfam_transdecoder_split:
-    """
-    Split the transdecoder into multiple chunks
-    """
+rule pfam_split_pep:
     input:
         fai = transdecoder + "transdecoder.pep.fai"
     output:
-        dynamic(
-            pfam + "chunks/transdecoder_{chunk_id}.tsv"
+        expand(
+            pfam + "chunks/transdecoder_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["pfam_hmmscan"])
+            ]
         )
     params:
-        chunk_size = config["chunk_size"]["pfam_hmmscan"]
+        number_of_chunks = config["number_of_chunks"]["pfam_hmmscan"]
     log:
-        pfam + "transdecoder_split.log"
+        pfam + "split_pep.log"
     benchmark:
-        pfam + "transdecoder_split.json"
+        pfam + "split_pep.json"
     shell:
-        "cut -f 1 {input.fai} "
-        "| split "
-            "--lines {params.chunk_size} "
+        "split "
+            "--number l/{params.number_of_chunks} "
             "--numeric-suffixes "
             "--suffix-length 5 "
             "--additional-suffix .tsv "
-            "- "
+            "{input.fai} "
             "{pfam}/chunks/transdecoder_ "
         "2> {log}"
+
 
 
 
@@ -43,7 +44,7 @@ rule pfam_hmmscan_chunk:
     benchmark:
         pfam + "chunks/hmmscan_{chunk_id}.json"
     shell:
-        "cat {input.chunk} "
+        "cut -f 1 {input.chunk} "
         "| xargs samtools faidx {input.pep} "
         "| hmmscan "
             "--domtblout {output.tsv} "
@@ -58,7 +59,13 @@ rule pfam_hmmscan_merge:
     Merge hmmscan results into one file
     """
     input:
-        dynamic(pfam + "chunks/hmmscan_{chunk_id}.tsv")
+        expand(
+            pfam + "chunks/hmmscan_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["pfam_hmmscan"])
+            ]
+        )
     output:
         tsv = pfam + "hmmscan.tsv"
     log:

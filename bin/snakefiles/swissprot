@@ -2,23 +2,26 @@ rule swissprot_split_pep:
     input:
         fai = transdecoder + "transdecoder.pep.fai"
     output:
-        temp(dynamic(
-            swissprot + "chunks/transdecoder_{chunk_id}.tsv"
-        ))
+        expand(
+            swissprot + "chunks/transdecoder_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["swissprot_blastp"])
+            ]
+        )
     params:
-        chunk_size = config["chunk_size"]["swissprot_blastp"]
+        number_of_chunks = config["number_of_chunks"]["swissprot_blastp"]
     log:
         swissprot + "split_pep.log"
     benchmark:
         swissprot + "split_pep.json"
     shell:
-        "cut -f 1 {input.fai} "
-        "| split "
-            "--lines {params.chunk_size} "
+        "split "
+            "--number l/{params.number_of_chunks} "
             "--numeric-suffixes "
             "--suffix-length 5 "
             "--additional-suffix .tsv "
-            "- "
+            "{input.fai} "
             "{swissprot}/chunks/transdecoder_ "
         "2> {log}"
 
@@ -37,21 +40,27 @@ rule swissprot_blastp_chunk:
     benchmark:
         swissprot + "blastp/transdecoder_{chunk_id}.json"
     shell:
-        "cat {input.chunk} "
+        "cut -f 1 {input.chunk} "
         "| xargs samtools faidx {input.pep} "
         "| blastp "
             "-db {input.db} "
             "-max_target_seqs 1 "
             "-outfmt 6 "
             "-evalue 1e-5 "
-            "-out {output.tsv} " 
-        "2> {log} 1>&2"
+        "> {output.tsv} " 
+        "2> {log}"
 
 
 
 rule swissprot_blastp_merge:
     input:
-        dynamic(swissprot + "blastp/transdecoder_{chunk_id}.tsv")
+        expand(
+            swissprot + "blastp/transdecoder_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["swissprot_blastp"])
+            ]
+        )
     output:
         tsv = swissprot + "blastp.tsv"
     log:

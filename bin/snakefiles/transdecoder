@@ -27,7 +27,7 @@ rule transdecoder_index_longest_orfs:
     input:
         pep = "transcriptome.fa.transdecoder_dir/longest_orfs.pep"
     output:
-        fai = temp("transcriptome.fa.transdecoder_dir/longest_orfs.pep.fai")
+        fai = "transcriptome.fa.transdecoder_dir/longest_orfs.pep.fai"
     log:
         transdecoder + "index_longest_orfs.log"
     benchmark:
@@ -44,23 +44,23 @@ rule transdecoder_split_longest_orfs:
     input:
         fai = "transcriptome.fa.transdecoder_dir/longest_orfs.pep.fai"
     output:
-        temp(dynamic(
-            transdecoder + "chunks/longest_orfs_{chunk_id}.tsv"
-        ))
+        expand(
+            transdecoder + "chunks/longest_orfs_{chunk_id}.tsv",
+            chunk_id = ['{0:05d}'.format(x) for x in range(0, config["number_of_chunks"]["transdecoder"])]
+        )
     params:
-        chunk_size = config["chunk_size"]["transdecoder"]
+        number_of_chunks = config["number_of_chunks"]["transdecoder"]
     log:
         transdecoder + "split_longest_orfs.log"
     benchmark:
         transdecoder + "split_longest_orfs.json"
     shell:
-        "cut -f 1 {input.fai} "
-        "| split "
-            "--lines {params.chunk_size} "
+        "split "
+            "--number l/{params.number_of_chunks} "
             "--numeric-suffixes "
             "--suffix-length 5 "
             "--additional-suffix .tsv "
-            "- "
+            "{input.fai} "
             "{transdecoder}/chunks/longest_orfs_ "
         "2> {log}"
 
@@ -83,7 +83,7 @@ rule transdecoder_hmmscan_chunk:
     benchmark:
         transdecoder + "hmmscan/longest_orfs_{chunk_id}.json"
     shell:
-        "cat {input.chunk} "
+        "cut -f 1 {input.chunk} "
         "| xargs samtools faidx {input.pep} "
         "| hmmscan "
             "--domtblout {output.tsv} "
@@ -98,7 +98,10 @@ rule transdecoder_hmmscan_merge:
     Merge hmmscan results into one file
     """
     input:
-        dynamic(transdecoder + "hmmscan/{chunk_id}.tsv")
+        expand(
+            transdecoder + "hmmscan/longest_orfs_{chunk_id}.tsv",
+            chunk_id = ['{0:05d}'.format(x) for x in range(0, config["number_of_chunks"]["transdecoder"])]
+        )
     output:
         tsv = transdecoder + "hmmscan.tsv"
     log:
@@ -126,7 +129,7 @@ rule transdecoder_blastp_chunk:
     benchmark:
         transdecoder + "blastp/longest_orfs_{chunk_id}.json"
     shell:
-        "cat {input.chunk} "
+        "cut -f 1 {input.chunk} "
         "| xargs samtools faidx {input.pep} "
         "| blastp "
             "-db {input.db} "
@@ -143,7 +146,10 @@ rule transdecoder_blastp_merge:
     Merge results from the different blastps
     """
     input:
-        dynamic(transdecoder + "blastp/longest_orfs_{chunk_id}.tsv")
+        expand(
+            transdecoder + "blastp/longest_orfs_{chunk_id}.tsv",
+            chunk_id = ['{0:05d}'.format(x) for x in range(0, config["number_of_chunks"]["transdecoder"])]
+        )
     output:
         tsv = transdecoder + "blastp.tsv"
     log:

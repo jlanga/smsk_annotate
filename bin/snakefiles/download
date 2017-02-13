@@ -107,13 +107,13 @@ rule download_cog:
     Download the tables and fasta from COG
     """
     output:
-        readme = cog + "readme",
-        cog = cog + "cog2003-2014.csv",
-        cognames = cog + "cognames2003-2014.tab",
-        fun = cog + "fun2003-2014.tab",
-        genomes = cog + "genomes2003-2014.tab",
-        fa_gz = db + "prot2003-2014.fa.gz", # DB!!!
-        prot = cog + "prot2003-2014.tab"
+        readme = download + "readme",
+        cog = download + "cog2003-2014.csv",
+        cognames = download + "cognames2003-2014.tab",
+        fun = download + "fun2003-2014.tab",
+        genomes = download + "genomes2003-2014.tab",
+        fa_gz = download + "prot2003-2014.fa.gz",
+        prot = download + "prot2003-2014.tab"
     params:
         url_readme =   config["cog"]["urls"]["readme"],
         url_cog =      config["cog"]["urls"]["cog"],
@@ -253,3 +253,43 @@ rule download_hairpin:
             "--output-document {output.fa_gz} "
             "{params.url} "
         "2> {log} 1>&2"
+
+
+
+rule download_uniprot2reactome:
+    output:
+        tsv = download + "UniProt2Reactome_All_Levels.txt"
+    params:
+        url = config["urls"]["uniprot2reactome"]
+    log:
+        download + "download_uniprot2reactome.log"
+    benchmark:
+        download + "download_uniprot2reactome.json"
+    shell:
+        """
+        wget \
+            --continue \
+            --output-document {output.tsv} \
+            {params.url} \
+        2> {log} 1>&2
+        """
+
+
+
+rule download_panther_hmm:
+    output:
+        tarball= download + "PANTHER11.1_hmmscoring.tgz"
+    params:
+        url = config["urls"]["panther_hmm"]
+    log:
+        download + "panther_hmm.log"
+    benchmark:
+        download + "panther_hmm.json"
+    shell:
+        """
+        wget \
+            --continue \
+            --output-document {output.tarball} \
+            {params.url} \
+        2> {log} 1>&2
+        """

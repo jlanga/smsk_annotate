@@ -235,3 +235,27 @@ rule db_makeblastdb_swissprot:
             "-title {output.db} "
             "-out {output.db} "
         "2> {log} 1>&2"
+
+
+
+rule db_panther_extract:
+    """
+    Decompress the tarball to the appropriate folder.
+    """
+    input:
+        tarball = download + "PANTHER11.1_hmmscoring.tgz"
+    output:
+        folder  = touch(db + "PANTHER11.1/") #touch to make the output older than the input
+    params:
+        db_dir = db
+    log:
+        download + "panther_extract.log"
+    benchmark:
+        download + "panther_extract.json"
+    shell:
+        "tar "
+            "--extract "
+            "--verbose "
+            "--file {input.tarball} "
+            "--directory {params.db_dir} "
+        "2> {log} 1>&2"

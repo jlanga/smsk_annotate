@@ -1,3 +1,14 @@
+"""
+split fasta
+| blastn each chunk against Rfam
+| join positives into a fasta
+| split again
+| cmsearch each chunk against Rfam
+| join
+"""
+
+
+
 rule ncrnas_transcriptome_split:
     """
     Split the transcriptome into multiple chunks
@@ -5,75 +16,58 @@ rule ncrnas_transcriptome_split:
     input:
         fai = raw + "transcriptome.fa.fai"
     output:
-        dynamic(
-            ncrnas + "chunks/transcriptome_{chunk_id}.tsv"
-        )
+        expand(
+            ncrnas + "blastn/transcriptome_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["ncrnas"])
+            ])
     params:
-        chunk_size = config["chunk_size"]["ncrnas_blastn"]
+        number_of_chunks = config["number_of_chunks"]["ncrnas"]
     log:
         ncrnas + "transcriptome_split.log"
     benchmark:
         ncrnas + "transcriptome_split.json"
     shell:
-        "cut -f 1 {input.fai} "
-        "| split "
-            "--lines {params.chunk_size} "
+        "split "
+            "--number l/{params.number_of_chunks} "
             "--numeric-suffixes "
             "--suffix-length 5 "
             "--additional-suffix .tsv "
-            "- "
-            "{ncrnas}/chunks/transcriptome_ "
+            "{input.fai} "
+            "{ncrnas}/blastn/transcriptome_ "
         "2> {log}"
 
 
 
-rule ncrnas_blastn_chunk:
+rule ncrnas_candidates_chunk:
     """
-    Blastn each chunk into the Rfam blastn database
+    Blastn each chunk into the Rfam blastn database.
+    Return a fasta with such sequences
     """
     input:
         fasta = raw + "transcriptome.fa",
         fai = raw + "transcriptome.fa.fai",
-        chunk = ncrnas + "chunks/transcriptome_{chunk_id}.tsv",
+        chunk = ncrnas + "blastn/transcriptome_{chunk_id}.tsv",
         db = db + "Rfam"
     output:
-        tsv = ncrnas + "chunks/blastn_{chunk_id}.tsv"
+        fasta = ncrnas + "cmsearch/candidates_{chunk_id}.fasta"
     log:
-        ncrnas + "chunks/blastn_{chunk_id}.log"
+        ncrnas + "blastn/blastn_{chunk_id}.log"
     benchmark:
-        ncrnas + "chunks/blastn_{chunk_id}.json"
+        ncrnas + "blastn/blastn_{chunk_id}.json"
     shell:
-        "cat {input.chunk} "
+        "(cut -f 1 {input.chunk} "
         "| xargs samtools faidx {input.fasta} "
         "| blastn "
             "-db {input.db} "
             "-max_target_seqs 1 "
             "-outfmt 6 "
             "-evalue 1e-5 "
-            "-out {output.tsv} " 
-        "2> {log} 1>&2"
-
-
-
-rule ncrnas_candidates_chunk:
-    """
-    Create a fasta for each recovered ncrna chunk
-    """
-    input:
-        fasta = raw + "transcriptome.fa",
-        fai = raw + "transcriptome.fa.fai",
-        blast_table  = dynamic(ncrnas + "chunks/blastn_{chunk_id}.tsv")
-    output:
-        fasta_chunk = ncrnas + "candidates.fasta"
-    log:
-        ncrnas + "candidates.log"
-    benchmark:
-        ncrnas + "candiates.json"   
-    shell:
-        "cut -f 1 {input.blast_table} "
+        "| cut -f 1 "
         "| sort -u "
         "| xargs samtools faidx {input.fasta} "
-        "> {output.fasta_chunk} "
+        "> {output.fasta}) "
         "2> {log}"
 
 
@@ -83,24 +77,82 @@ rule ncrnas_cmsearch_chunk:
     Run cmsearch over each chunk
     """
     input:
-        fasta =  ncrnas + "candidates.fasta",
+        fasta =  ncrnas + "cmsearch/candidates_{chunk_id}.fasta",
         cm = db + "Rfam.cm"
     output:
-        tsv = ncrnas + "cmsearch.tsv",
-        stats = ncrnas + "cmsearch.stats"
-    threads:
-        24
+        tsv = ncrnas + "cmsearch/cmsearch_{chunk_id}.tsv",
+        stats = ncrnas + "cmsearch/cmsearch_{chunk_id}.stats"
+    log:
+        ncrnas + "cmsearch/cmsearch_{chunk_id}.log"
+    benchmark:
+        ncrnas + "cmsearch/cmsearch_{chunk_id}.json"
+    shell: # cmsearch doesn't like empty fastas
+        "if [[ -s {input.fasta} ]] ; then "
+            "cmsearch "
+                "--cut_ga "
+                "--tblout {output.tsv} "
+                "-o {output.stats} "
+                "{input.cm} "
+                "{input.fasta} "
+            "> {output.tsv} "
+            "2> {log} ; "
+        "else "
+            "touch {output} 2> {log} ; "
+        "fi"
+        
+
+
+rule ncrnas_cmsearch_join:
+    """
+    Join results from cmsearch
+    """
+    input:
+        expand(
+            ncrnas + "cmsearch/cmsearch_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["ncrnas"])
+            ]
+        )
+    output:
+        ncrnas + "cmsearch.tsv"
     log:
         ncrnas + "cmsearch.log"
     benchmark:
         ncrnas + "cmsearch.json"
     shell:
-        "cmsearch "
-            "--cpu {threads} "
-            "--cut_ga "
-            "--tblout {output.tsv} "
-            "-o {output.stats} "
-            "{input.cm} "
-            "{input.fasta} "
-        "> {output.tsv} "
+        "cat {input} "
+        "| grep -v ^# "
+        "> {output} "
         "2> {log}"
+
+
+
+
+
+# rule ncrnas_cmsearch:
+#     """
+#     Run cmsearch over each chunk
+#     """
+#     input:
+#         fasta =  ncrnas + "candidates.fasta",
+#         cm = db + "Rfam.cm"
+#     output:
+#         tsv = ncrnas + "cmsearch.tsv",
+#         stats = ncrnas + "cmsearch.stats"
+#     threads:
+#         24
+#     log:
+#         ncrnas + "cmsearch.log"
+#     benchmark:
+#         ncrnas + "cmsearch.json"
+#     shell:
+#         "cmsearch "
+#             "--cpu {threads} "
+#             "--cut_ga "
+#             "--tblout {output.tsv} "
+#             "-o {output.stats} "
+#             "{input.cm} "
+#             "{input.fasta} "
+#         "> {output.tsv} "
+#         "2> {log}"

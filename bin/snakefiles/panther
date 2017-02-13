@@ -1,0 +1,93 @@
+rule panther_transdecoder_split:
+    """
+    Split the transdecoder into multiple chunks
+    """
+    input:
+        fai = transdecoder + "transdecoder.pep.fai"
+    output:
+        expand(
+            panther + "chunks/transdecoder_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["panther"])
+            ]
+        )
+    params:
+        number_of_chunks = config["number_of_chunks"]["panther"]
+    log:
+        panther + "transdecoder_split.log"
+    benchmark:
+        panther + "transdecoder_split.json"
+    shell:
+        "split "
+            "--number l/{params.number_of_chunks} "
+            "--numeric-suffixes "
+            "--suffix-length 5 "
+            "--additional-suffix .tsv "
+            "{input.fai} "
+            "{panther}/chunks/transdecoder_ "
+        "2> {log}"
+
+
+
+rule panther_fasta_chunk:
+    input:
+        pep = transdecoder + "transdecoder.pep",
+        fai = transdecoder + "transdecoder.pep.fai",
+        ids = panther + "chunks/transdecoder_{chunk_id}.tsv"
+    output:
+        fasta = panther + "chunks/transdecoder_{chunk_id}.fasta"
+    log:
+        panther + "chunks/transdecoder_{chunk_id}.log"
+    benchmark:
+        panther + "chunks/transdecoder_{chunk_id}.benchmark"
+    shell:
+        "cut -f 1 {input.ids} "
+        "| xargs samtools faidx {input.pep} "
+        "> {output.fasta} "
+        "2> {log}"
+
+
+rule panther_pantherScore_chunk:
+    input:
+        fasta = panther + "chunks/transdecoder_{chunk_id}.fasta",
+        hmm = db + "PANTHER11.1/"
+    output:
+        tsv = panther + "chunks/pantherScore_{chunk_id}.tsv"
+    log:
+        panther + "chunks/pantherScore_{chunk_id}.log"
+    benchmark:
+        panther + "chunks/pantherScore_{chunk_id}.json"
+    shell:
+        "perl "
+            "-I src/pantherScore2.0/lib "
+            "src/pantherScore2.0/pantherScore2.0.pl "
+            "-T $(mktemp -d) "
+            "-l {input.hmm} "
+            "-D B "
+            "-V "
+            "-i {input.fasta} "
+            "-n "
+            "-c 1 "
+            "-o {output.tsv} "
+        "2> {log}"
+
+
+
+rule panther_pantherScore_join:
+    input:
+        tsv = expand(
+            panther + "chunks/pantherScore_{chunk_id}.tsv",
+            chunk_id = [
+                '{0:05d}'.format(x) 
+                for x in range(0, config["number_of_chunks"]["panther"])
+            ]
+        )
+    output:
+        tsv = panther + "pantherScore.tsv"
+    log:
+        panther + "pantherScore_join.log"
+    benchmark:
+        panther + "pantherScore_join.json"
+    shell:
+        "cat {input.tsv} > {output.tsv} 2> {log}"
