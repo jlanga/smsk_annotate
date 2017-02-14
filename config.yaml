@@ -16,7 +16,8 @@ gi_list: "txid32443"
 
 sequences:
     #fasta: data/sequences/454Isotigs.fna
-    fasta: data/sequences/test.fa
+    #fasta: data/sequences/test.fa
+    fasta: data/sequences/spil.sardina_pilchardus.khmer_trinity.fasta
 
 busco:
     species: "zebrafish" # Species used for the actinopterygii dataset in agusutus. See Busco documentation 
@@ -36,13 +37,75 @@ cog:
         prot:     "ftp://ftp.ncbi.nih.gov/pub/COG/COG2014/data/prot2003-2014.tab"
 
 number_of_chunks: # Please use #chunks < #sequences
-    transdecoder: 20 # Same for blastx and hmmscan
-    swissprot_blastp: 20
-    uniref90_blastp: 20
-    nrsubset_blastp: 20
-    pfam_hmmscan: 20
-    cog_blastp: 20
-    ncrnas: 20 # same for blastn and cmsearch
-    mirnas_blastn: 20
+    transdecoder: 100 # Same for blastx and hmmscan
+    swissprot_blastp: 100
+    uniref90_blastp: 100
+    nrsubset_blastp: 100
+    pfam_hmmscan: 100
+    cog_blastp: 100
+    ncrnas: 100 # same for blastn and cmsearch
+    mirnas_blastn: 100
     panther: 10 # Careful. Memory hungry: 2-3 Gb per process
 
+
+rna_pe:
+    skin:
+        forward: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_4_1.fastq.gz
+        reverse: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_4_2.fastq.gz
+        adaptor: ./data/adapters/TruSeq3-PE-2.fa
+        phred:   phred33
+        condition: skin
+    testes:
+        forward: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_5_1.fastq.gz
+        reverse: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_5_2.fastq.gz
+        adaptor: ./adapters/TruSeq3-PE-2.fa
+        phred: phred33
+        condition: testes
+    muscle:
+        forward: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_6_1.fastq.gz
+        reverse: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_6_2.fastq.gz
+        adaptor: ./adapters/TruSeq3-PE-2.fa
+        phred:   phred33
+        condition: muscle
+    kidney:
+        forward: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_19_1.fastq.gz
+        reverse: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_19_2.fastq.gz
+        adaptor: ./adapters/TruSeq3-PE-2.fa
+        phred:   phred33
+        condition: kidney
+    eye:
+        forward: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_20_1.fastq.gz
+        reverse: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_20_2.fastq.gz
+        adaptor: ./adapters/TruSeq3-PE-2.fa
+        phred:   phred33
+        condition: eye
+    heart:
+        forward: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_21_1.fastq.gz
+        reverse: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_21_2.fastq.gz
+        adaptor: ./adapters/TruSeq3-PE-2.fa
+        phred:   phred33
+        condition: heart
+    brain:
+        forward: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_22_1.fastq.gz
+        reverse: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_22_2.fastq.gz
+        adaptor: ./adapters/TruSeq3-PE-2.fa
+        phred:   phred33
+        condition: brain
+    liver:
+        forward: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_23_1.fastq.gz
+        reverse: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_23_2.fastq.gz
+        adaptor: ./adapters/TruSeq3-PE-2.fa
+        phred:   phred33
+        condition: liver
+    ovary:
+        forward: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_27_1.fastq.gz
+        reverse: /home/share/raw_data/spil/ESTONBA_05/20160420/FASTQ/C8F1YACXX_5_27_2.fastq.gz
+        adaptor: ./adapters/TruSeq3-PE-2.fa
+        phred:   phred33
+        condition: ovary
+
+trimmomatic_params:
+    "SLIDINGWINDOW:4:5 LEADING:5 TRAILING:5 MINLEN:25 TOPHRED33"
+
+kallisto_params:
+    "--bootstrap-samples=100 --bias"

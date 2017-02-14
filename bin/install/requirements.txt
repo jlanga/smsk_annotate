@@ -16,3 +16,5 @@ pandas
 bioservices
 r-optparse
 trinity=2.3.2
+kallisto
+r-sleuth

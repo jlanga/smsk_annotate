@@ -17,3 +17,7 @@ reactome     = "results/reactome/"
 panther      = "results/panther/"
 # qdd          = "results/qdd/"
 # ipro         = "results/interpro/"
+
+qc = "results/qc/"
+filtering = "results/filtering/"
+tissue = "results/tissue/"

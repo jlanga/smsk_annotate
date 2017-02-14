@@ -3,7 +3,7 @@ rule mirnas_transcriptome_split:
     Split transcriptome into multiple chunks
     """
     input:
-        fai = raw + "transcriptome.fa.fai"
+        fai = filtering + "filtered_transcriptome.fasta.fai"
     output:
         expand(
             mirnas + "chunks/transcriptome_{chunk_id}.tsv",
@@ -34,8 +34,8 @@ rule mirnas_blastn_transcriptome_chunk:
     Blastn each chunk against the hairpin database
     """
     input:
-        fa = raw + "transcriptome.fa",
-        fai = raw + "transcriptome.fa.fai",
+        fa = filtering + "filtered_transcriptome.fasta",
+        fai = filtering + "filtered_transcriptome.fasta.fai",
         chunk = mirnas + "chunks/transcriptome_{chunk_id}.tsv",
         db = db + "hairpin"
     output:
@@ -86,8 +86,8 @@ rule mirnas_candidates_fasta:
     """
     input:
         tsv = mirnas + "blastn.tsv",
-        fa = raw + "transcriptome.fa",
-        fai = raw + "transcriptome.fa.fai"
+        fa = filtering + "filtered_transcriptome.fasta",
+        fai = filtering + "filtered_transcriptome.fasta.fai"
     output:
         fa = mirnas + "candidates.fa"
     log:

@@ -3,12 +3,12 @@ rule transdecoder_longorfs:
     Predict proteins according to the presence of long ORFs
     """
     input:
-        fasta = raw + "transcriptome.fa",
+        fasta = filtering + "filtered_transcriptome.fasta",
         tsv = raw + "gene_to_trans_map.tsv"
     output:
-        "transcriptome.fa.transdecoder_dir/longest_orfs.pep",
+        "filtered_transcriptome.fasta.transdecoder_dir/longest_orfs.pep",
         temp(
-            "transcriptome.fa.transdecoder_dir/"
+            "filtered_transcriptome.fasta.transdecoder_dir/"
         )
     log:
         transdecoder + "longorfs.log"
@@ -27,9 +27,9 @@ rule transdecoder_index_longest_orfs:
     Create samtools index for longest_orfs.pep
     """
     input:
-        pep = "transcriptome.fa.transdecoder_dir/longest_orfs.pep"
+        pep = "filtered_transcriptome.fasta.transdecoder_dir/longest_orfs.pep"
     output:
-        fai = "transcriptome.fa.transdecoder_dir/longest_orfs.pep.fai"
+        fai = "filtered_transcriptome.fasta.transdecoder_dir/longest_orfs.pep.fai"
     log:
         transdecoder + "index_longest_orfs.log"
     benchmark:
@@ -44,7 +44,7 @@ rule transdecoder_split_longest_orfs:
     Split the headers from transdecoder_longest_orfs into multiple files
     """
     input:
-        fai = "transcriptome.fa.transdecoder_dir/longest_orfs.pep.fai"
+        fai = "filtered_transcriptome.fasta.transdecoder_dir/longest_orfs.pep.fai"
     output:
         expand(
             transdecoder + "chunks/longest_orfs_{chunk_id}.tsv",
@@ -73,8 +73,8 @@ rule transdecoder_hmmscan_chunk:
     hmmscan over one chunk
     """
     input:
-        pep = "transcriptome.fa.transdecoder_dir/longest_orfs.pep",
-        fai = "transcriptome.fa.transdecoder_dir/longest_orfs.pep.fai",
+        pep = "filtered_transcriptome.fasta.transdecoder_dir/longest_orfs.pep",
+        fai = "filtered_transcriptome.fasta.transdecoder_dir/longest_orfs.pep.fai",
         chunk = transdecoder + "chunks/longest_orfs_{chunk_id}.tsv",
         hmm = db + "Pfam-A.hmm"
     output:
@@ -119,8 +119,8 @@ rule transdecoder_blastp_chunk:
     Run blastp of each chunk
     """
     input:
-        pep = "transcriptome.fa.transdecoder_dir/longest_orfs.pep",
-        fai = "transcriptome.fa.transdecoder_dir/longest_orfs.pep.fai",
+        pep = "filtered_transcriptome.fasta.transdecoder_dir/longest_orfs.pep",
+        fai = "filtered_transcriptome.fasta.transdecoder_dir/longest_orfs.pep.fai",
         chunk = transdecoder + "chunks/longest_orfs_{chunk_id}.tsv",
         db = db + "subset_nr"
     output:
@@ -167,21 +167,21 @@ rule transdecoder_predict:
     Join results from blast and hmmr to predict coding sequences
     """
     input:
-        fasta = raw + "transcriptome.fa",
+        fasta = filtering + "filtered_transcriptome.fasta",
         pfam_tsv = transdecoder + "hmmscan.tsv",
         blastp_tsv = transdecoder + "blastp.tsv",
-        folder = "transcriptome.fa.transdecoder_dir/"
+        folder = "filtered_transcriptome.fasta.transdecoder_dir/"
     output:
         bed  = transdecoder + "transdecoder.bed",
         cds  = transdecoder + "transdecoder.cds",
         gff3 = transdecoder + "transdecoder.gff3",
         pep  = transdecoder + "transdecoder.pep",
     params:
-        dir = "transcriptome.fa.transdecoder_dir",
-        bed  = "transcriptome.fa.transdecoder.bed",
-        cds  = "transcriptome.fa.transdecoder.cds",
-        gff3 = "transcriptome.fa.transdecoder.gff3",
-        pep  = "transcriptome.fa.transdecoder.pep",
+        dir  = "filtered_transcriptome.fasta.transdecoder_dir",
+        bed  = "filtered_transcriptome.fasta.transdecoder.bed",
+        cds  = "filtered_transcriptome.fasta.transdecoder.cds",
+        gff3 = "filtered_transcriptome.fasta.transdecoder.gff3",
+        pep  = "filtered_transcriptome.fasta.transdecoder.pep",
     threads:
         24
     log:

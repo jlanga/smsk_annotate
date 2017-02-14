@@ -7,20 +7,30 @@ include: snakefiles + "folders"
 include: snakefiles + "raw"
 include: snakefiles + "download"
 include: snakefiles + "db"
+
+include: snakefiles + "qc"
+include: snakefiles + "filtering"
+include: snakefiles + "tissue"
+
 include: snakefiles + "transdecoder"
 include: snakefiles + "swissprot"
 include: snakefiles + "nrsubset"
 include: snakefiles + "uniref90"
 include: snakefiles + "pfam"
 include: snakefiles + "busco"
-include: snakefiles + "ncrnas"
 include: snakefiles + "panther"
 include: snakefiles + "cog"
-include: snakefiles + "trnas"
-#include: snakefiles + "mirnas"
 include: snakefiles + "bioservices"
 include: snakefiles + "go"
 include: snakefiles + "reactome"
+
+include: snakefiles + "ncrnas"
+include: snakefiles + "trnas"
+
+
+
+
+#include: snakefiles + "mirnas"
 # include: snakefiles + "qdd"
 # include: snakefiles + "interproscan"
 
@@ -44,7 +54,7 @@ rule all:
         panther + "pantherScore.tsv",
         #ipro         + "ipro.tsv",
         cog + "functions.pdf",
-        
+        tissue + "normalised_tpms.tsv"
         
        
         

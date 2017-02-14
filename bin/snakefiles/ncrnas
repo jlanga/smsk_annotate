@@ -14,7 +14,7 @@ rule ncrnas_transcriptome_split:
     Split the transcriptome into multiple chunks
     """
     input:
-        fai = raw + "transcriptome.fa.fai"
+        fai = filtering + "filtered_transcriptome.fasta.fai"
     output:
         expand(
             ncrnas + "blastn/transcriptome_{chunk_id}.tsv",
@@ -46,8 +46,8 @@ rule ncrnas_candidates_chunk:
     Return a fasta with such sequences
     """
     input:
-        fasta = raw + "transcriptome.fa",
-        fai = raw + "transcriptome.fa.fai",
+        fasta = filtering + "filtered_transcriptome.fasta",
+        fai = filtering + "filtered_transcriptome.fasta.fai",
         chunk = ncrnas + "blastn/transcriptome_{chunk_id}.tsv",
         db = db + "Rfam"
     output:
@@ -125,34 +125,3 @@ rule ncrnas_cmsearch_join:
         "| grep -v ^# "
         "> {output} "
         "2> {log}"
-
-
-
-
-
-# rule ncrnas_cmsearch:
-#     """
-#     Run cmsearch over each chunk
-#     """
-#     input:
-#         fasta =  ncrnas + "candidates.fasta",
-#         cm = db + "Rfam.cm"
-#     output:
-#         tsv = ncrnas + "cmsearch.tsv",
-#         stats = ncrnas + "cmsearch.stats"
-#     threads:
-#         24
-#     log:
-#         ncrnas + "cmsearch.log"
-#     benchmark:
-#         ncrnas + "cmsearch.json"
-#     shell:
-#         "cmsearch "
-#             "--cpu {threads} "
-#             "--cut_ga "
-#             "--tblout {output.tsv} "
-#             "-o {output.stats} "
-#             "{input.cm} "
-#             "{input.fasta} "
-#         "> {output.tsv} "
-#         "2> {log}"

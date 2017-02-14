@@ -1,0 +1,44 @@
+rule qc_trimmomatic_pe_sample:
+    """
+    Run trimmomatic on paired end mode to eliminate Illumina adaptors and remove
+    low quality regions and reads.
+    """
+    input:
+        forward    = raw + "{sample}_1.fq.gz",
+        reverse    = raw + "{sample}_2.fq.gz"
+    output:
+        forward    = protected(qc + "{sample}_1.fq.gz"),
+        reverse    = protected(qc + "{sample}_2.fq.gz"),
+        unpaired   = protected(qc + "{sample}_u.fq.gz")
+    params:
+        unpaired_1 = qc + "{sample}_3.fq.gz",
+        unpaired_2 = qc + "{sample}_4.fq.gz",
+        adaptor    = lambda wildcards: config["rna_pe"][wildcards.sample]["adaptor"],
+        trimming   = config["trimmomatic_params"],
+        phred      = lambda wildcards: config["rna_pe"][wildcards.sample]["phred"]
+    benchmark:
+        qc + "trimmomatic_pe_{sample}.json"
+    log:
+        qc + "trimmomatic_pe_{sample}.log" 
+    threads:
+        24
+    shell:
+        "trimmomatic PE "
+             "-threads {threads} "
+             "-{params.phred} "
+             "<(gzip --decompress --stdout {input.forward}) "
+             "<(gzip --decompress --stdout {input.reverse}) "
+             ">(pigz --best > {output.forward}) "
+             "{params.unpaired_1} "
+             ">(pigz --best > {output.reverse}) "
+             "{params.unpaired_2} "
+             "ILLUMINACLIP:{params.adaptor}:2:30:10 "
+             "{params.trimming} "
+        "2> {log} 1>&2 ; "
+        "(pigz --decompress --stdout "
+            "{params.unpaired_1} "
+            "{params.unpaired_2} "
+            "| pigz --best "
+        "> {output.unpaired}) "
+        "2>> {log} ; "
+        "rm {params.unpaired_1} {params.unpaired_2}"

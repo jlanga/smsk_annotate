@@ -3,7 +3,7 @@ rule busco_analysis_lineage:
     Perform the Busco analysis.
     """
     input:
-        transcriptome = raw + "transcriptome.fa",
+        transcriptome = filtering + "filtered_transcriptome.fasta",
         lineage       = db + "{lineage}/"
     output:
         folder     = busco + "{lineage}/",

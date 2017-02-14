@@ -27,15 +27,13 @@ rule go_annotation:
     benchmark:
         go + "annotation.json"
     shell:
-        """
-        Rscript bin/go_annotation.R \
-            {input.tsv} \
-        2> {log} 1>&2
-        
-        mv \
-            {params.go_tsv} \
-            {params.bp_pdf} {params.cc_pdf} {params.mf_pdf} \
-            {params.bp_tsv} {params.cc_tsv} {params.mf_tsv} \
-            {params.category_tsv} \
-            {params.go_dir}
-        """
+        "Rscript bin/go_annotation.R "
+            "{input.tsv} "
+        "2> {log} 1>&2 ; "
+        "mv "
+            "{params.go_tsv} "
+            "{params.bp_pdf} {params.cc_pdf} {params.mf_pdf} "
+            "{params.bp_tsv} {params.cc_tsv} {params.mf_tsv} "
+            "{params.category_tsv} "
+            "{params.go_dir} "
+        "2>> {log}"
